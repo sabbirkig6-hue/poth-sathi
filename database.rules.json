@@ -1,17 +1,16 @@
+
 {
   "rules": {
-    ".read": false,
-    ".write": false,
-    "providers": {
-      ".read": true,
-      "$providerId": {
-        ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid) || (data.exists() && data.child('ownerUid').val() === auth.uid && (!newData.exists() || newData.child('ownerUid').val() === auth.uid)))"
-      }
-    },
     "profiles": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "providers": {
+      ".read": true,
+      "$providerId": {
+        ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid) || (data.exists() && data.child('ownerUid').val() === auth.uid && (!newData.exists() || newData.child('ownerUid').val() === auth.uid)))"
       }
     }
   }
