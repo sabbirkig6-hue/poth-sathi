@@ -1,5 +1,5 @@
 
-name: Build Poth Sathi APK
+name: Build Poth Sathi TWA
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -24,14 +24,10 @@ jobs:
       - name: Install Android SDK
         run: |
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)
-          if [ -z "$SDKMANAGER" ]; then
-            echo "Android SDK Manager not found"
-            exit 1
-          fi
           yes | "$SDKMANAGER" --licenses
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Create Android project
+      - name: Create TWA project
         run: |
           mkdir -p app/src/main/java/com/sabbir/pothsathi
 
@@ -78,13 +74,13 @@ jobs:
                   applicationId 'com.sabbir.pothsathi'
                   minSdk 23
                   targetSdk 35
-                  versionCode 2
-                  versionName '2.0'
+                  versionCode 3
+                  versionName '3.0'
               }
           }
 
           dependencies {
-              implementation 'androidx.browser:browser:1.8.0'
+              implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
           }
           EOF
 
@@ -94,17 +90,37 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET"/>
 
               <application
-                  android:theme="@android:style/Theme.Material.Light.NoActionBar"
                   android:label="পথ সাথী"
-                  android:allowBackup="true">
+                  android:allowBackup="true"
+                  android:theme="@android:style/Theme.Translucent.NoTitleBar">
 
                   <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
+                      android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+                      android:exported="true"
+                      android:alwaysRetainTaskState="true"
+                      android:label="পথ সাথী">
+
+                      <meta-data
+                          android:name="android.support.customtabs.trusted.DEFAULT_URL"
+                          android:value="https://sabbirkig6-hue.github.io/poth-sathi/"/>
+
+                      <meta-data
+                          android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
+                          android:resource="@android:color/holo_green_dark"/>
 
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+
+                      <intent-filter android:autoVerify="true">
+                          <action android:name="android.intent.action.VIEW"/>
+                          <category android:name="android.intent.category.DEFAULT"/>
+                          <category android:name="android.intent.category.BROWSABLE"/>
+                          <data
+                              android:scheme="https"
+                              android:host="sabbirkig6-hue.github.io"
+                              android:pathPrefix="/poth-sathi/"/>
                       </intent-filter>
 
                   </activity>
@@ -112,76 +128,29 @@ jobs:
           </manifest>
           EOF
 
-          cat > app/src/main/java/com/sabbir/pothsathi/MainActivity.java <<'EOF'
-          package com.sabbir.pothsathi;
-
-          import android.app.Activity;
-          import android.os.Bundle;
-          import android.net.Uri;
-          import android.content.Intent;
-          import android.widget.Toast;
-
-          import androidx.browser.customtabs.CustomTabsIntent;
-
-          public class MainActivity extends Activity {
-
-              private static final String WEBSITE =
-                  "https://sabbirkig6-hue.github.io/poth-sathi/";
-
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-
-                  if (savedInstanceState == null) {
-                      openWebsite();
-                  } else {
-                      finish();
-                  }
-              }
-
-              private void openWebsite() {
-                  try {
-                      CustomTabsIntent customTabs =
-                          new CustomTabsIntent.Builder()
-                              .setShowTitle(true)
-                              .build();
-
-                      customTabs.launchUrl(
-                          this,
-                          Uri.parse(WEBSITE)
-                      );
-
-                  } catch (Exception e) {
-                      try {
-                          Intent browser = new Intent(
-                              Intent.ACTION_VIEW,
-                              Uri.parse(WEBSITE)
-                          );
-                          startActivity(browser);
-                      } catch (Exception error) {
-                          Toast.makeText(
-                              this,
-                              "ওয়েবসাইট খোলা যাচ্ছে না",
-                              Toast.LENGTH_LONG
-                          ).show();
-                      }
-                  }
-              }
-          }
-          EOF
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Build APK
+      - name: Build TWA APK
         run: gradle assembleDebug
 
-      - name: Upload APK
+      - name: Show SHA256 fingerprint
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Save debug signing key
+        run: |
+          mkdir -p signing-key
+          cp "$HOME/.android/debug.keystore" signing-key/debug.keystore
+
+      - name: Upload APK and signing key
         uses: actions/upload-artifact@v4
         with:
-          name: Poth-Sathi-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Poth-Sathi-TWA-First-Build
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            signing-key/debug.keystore
           if-no-files-found: error
           
