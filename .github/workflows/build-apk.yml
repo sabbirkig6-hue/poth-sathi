@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -27,7 +27,7 @@ jobs:
           yes | "$SDKMANAGER" --licenses
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Create TWA project
+      - name: Create TWA Android project
         run: |
           mkdir -p app/src/main/java/com/sabbir/pothsathi
 
@@ -74,8 +74,23 @@ jobs:
                   applicationId 'com.sabbir.pothsathi'
                   minSdk 23
                   targetSdk 35
-                  versionCode 3
-                  versionName '3.0'
+                  versionCode 4
+                  versionName '4.0'
+              }
+
+              signingConfigs {
+                  debug {
+                      storeFile file('../pothsathi.keystore')
+                      storePassword 'PothSathiKey2026'
+                      keyAlias 'pothsathi'
+                      keyPassword 'PothSathiKey2026'
+                  }
+              }
+
+              buildTypes {
+                  debug {
+                      signingConfig signingConfigs.debug
+                  }
               }
           }
 
@@ -97,7 +112,6 @@ jobs:
                   <activity
                       android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
                       android:exported="true"
-                      android:alwaysRetainTaskState="true"
                       android:label="পথ সাথী">
 
                       <meta-data
@@ -113,44 +127,41 @@ jobs:
                           <category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
 
-                      <intent-filter android:autoVerify="true">
-                          <action android:name="android.intent.action.VIEW"/>
-                          <category android:name="android.intent.category.DEFAULT"/>
-                          <category android:name="android.intent.category.BROWSABLE"/>
-                          <data
-                              android:scheme="https"
-                              android:host="sabbirkig6-hue.github.io"
-                              android:pathPrefix="/poth-sathi/"/>
-                      </intent-filter>
-
                   </activity>
               </application>
           </manifest>
           EOF
+
+      - name: Create signing key
+        run: |
+          keytool -genkeypair \
+            -keystore pothsathi.keystore \
+            -alias pothsathi \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass PothSathiKey2026 \
+            -keypass PothSathiKey2026 \
+            -dname "CN=Sabbir Ahmed, OU=PothSathi, O=PothSathi, L=Sylhet, ST=Bangladesh, C=BD"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Build TWA APK
+      - name: Build signed TWA APK
         run: gradle assembleDebug
 
       - name: Show SHA256 fingerprint
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Save debug signing key
-        run: |
-          mkdir -p signing-key
-          cp "$HOME/.android/debug.keystore" signing-key/debug.keystore
-
       - name: Upload APK and signing key
         uses: actions/upload-artifact@v4
         with:
-          name: Poth-Sathi-TWA-First-Build
+          name: Poth-Sathi-TWA
           path: |
             app/build/outputs/apk/debug/app-debug.apk
-            signing-key/debug.keystore
+            pothsathi.keystore
           if-no-files-found: error
           
