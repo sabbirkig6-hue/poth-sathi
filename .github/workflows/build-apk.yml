@@ -5,7 +5,6 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'index.html'
       - '.github/workflows/build-apk.yml'
 
 jobs:
@@ -27,10 +26,7 @@ jobs:
 
       - name: Create Android project
         run: |
-          mkdir -p app/src/main/assets
           mkdir -p app/src/main/java/com/sabbir/pothsathi
-
-          cp index.html app/src/main/assets/index.html
 
           cat > settings.gradle <<'EOF'
           pluginManagement {
@@ -83,13 +79,16 @@ jobs:
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
+
               <application
                   android:theme="@android:style/Theme.Material.Light.NoActionBar"
                   android:label="পথ সাথী"
                   android:usesCleartextTraffic="true">
+
                   <activity
                       android:name=".MainActivity"
                       android:exported="true">
+
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
@@ -117,6 +116,7 @@ jobs:
                   super.onCreate(savedInstanceState);
 
                   webView = new WebView(this);
+
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
@@ -124,7 +124,8 @@ jobs:
 
                   webView.setWebViewClient(new WebViewClient());
                   webView.setWebChromeClient(new WebChromeClient());
-                  webView.loadUrl("file:///android_asset/index.html");
+
+                  webView.loadUrl("https://sabbirkig6-hue.github.io/poth-sathi/");
 
                   setContentView(webView);
               }
