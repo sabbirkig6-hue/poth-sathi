@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
@@ -21,8 +21,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -f "$SDKMANAGER" ]; then
+            SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)
+          fi
+          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Create Android project
         run: |
@@ -55,6 +61,7 @@ jobs:
 
           cat > gradle.properties <<'EOF'
           android.useAndroidX=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
 
           cat > app/build.gradle <<'EOF'
@@ -109,7 +116,7 @@ jobs:
           import android.webkit.WebSettings;
 
           public class MainActivity extends Activity {
-              WebView webView;
+              private WebView webView;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -125,7 +132,9 @@ jobs:
                   webView.setWebViewClient(new WebViewClient());
                   webView.setWebChromeClient(new WebChromeClient());
 
-                  webView.loadUrl("https://sabbirkig6-hue.github.io/poth-sathi/");
+                  webView.loadUrl(
+                      "https://sabbirkig6-hue.github.io/poth-sathi/"
+                  );
 
                   setContentView(webView);
               }
@@ -141,15 +150,18 @@ jobs:
           }
           EOF
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
       - name: Build APK
-        run: |
-          gradle wrapper --gradle-version 8.9
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Poth-Sathi-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
           
