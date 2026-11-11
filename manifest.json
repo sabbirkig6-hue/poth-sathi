@@ -1,0 +1,15 @@
+
+{
+  "id": "/poth-sathi/",
+  "name": "পথ সাথী",
+  "short_name": "পথ সাথী",
+  "description": "আপনার এলাকার সেবা ও যোগাযোগের ঠিকানা",
+  "start_url": "/poth-sathi/",
+  "scope": "/poth-sathi/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#128C7E",
+  "lang": "bn",
+  "dir": "ltr"
+}
